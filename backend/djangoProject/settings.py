@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_filters",
-
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
     # third-party
     'rest_framework',
     "corsheaders",
@@ -120,6 +121,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
@@ -153,3 +155,11 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Job Tracker API",
+    "DESCRIPTION": "API documentation for Job Tracker (DRF + JWT).",
+    "VERSION": "1.0.0",
+    # 让 Swagger UI 支持 Bearer Token 按钮（JWT）
+    "COMPONENT_SPLIT_REQUEST": True,
+}

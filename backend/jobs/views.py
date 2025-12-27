@@ -3,11 +3,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Job
 from .serializers import JobSerializer
+from rest_framework import filters
 
 class JobViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = JobSerializer
 
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ("company", "title", "note")
     ordering_fields = ("created_at", "updated_at", "applied_at", "status")
     ordering = ("-updated_at",)

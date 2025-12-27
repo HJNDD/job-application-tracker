@@ -7,6 +7,7 @@ class JobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         fields = "__all__"
+        read_only_fields = ("owner",)  # 让 owner 外键只读，避免被提交篡改
 
     def validate_status(self, value):
         # 创建时：不需要校验流转（因为还没有 instance）
