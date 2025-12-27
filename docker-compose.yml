@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: jobtracker
+      MYSQL_USER: jobuser
+      MYSQL_PASSWORD: jobpass
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3307:3306"   # 你已经改过就保留
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -prootpass --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  web:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MYSQL_DATABASE: jobtracker
+      MYSQL_USER: jobuser
+      MYSQL_PASSWORD: jobpass
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      DJANGO_SECRET_KEY: dev-secret
+      DEBUG: "1"
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  mysql_data:
