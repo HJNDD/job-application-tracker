@@ -50,7 +50,7 @@ jobs:
       - name: Run tests
         env:
           MYSQL_DATABASE: jobtracker
-          MYSQL_USER: jobuser
+          MYSQL_USER: jobuser.
           MYSQL_PASSWORD: jobpass
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3306
