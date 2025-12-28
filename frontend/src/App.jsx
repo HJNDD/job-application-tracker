@@ -1,19 +1,16 @@
-import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Jobs from "./pages/Jobs";
 
 export default function App() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    fetch("http://localhost:8000/api/ping/")
-      .then((r) => r.json())
-      .then(setData)
-      .catch((e) => setData({ error: String(e) }));
-  }, []);
-
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Frontend ↔ Backend</h1>
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </div>
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/jobs" element={<Jobs />} />
+      <Route path="*" element={<h2>404 Not Found</h2>} />
+    </Routes>
   );
 }
