@@ -36,5 +36,13 @@ class Job(models.Model):
         allowed = self.ALLOWED_TRANSITIONS.get(current, {current})
         return new_status in allowed
 
+    def allowed_transitions(self):
+        """
+        返回当前状态允许流转到的 status 列表（给前端渲染按钮用）
+        """
+        current = self.status
+        allowed = self.ALLOWED_TRANSITIONS.get(current, {current})
+        return list(allowed)
+
     def __str__(self):
         return f"{self.company} - {self.title}"
