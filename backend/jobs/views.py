@@ -15,7 +15,7 @@ class JobViewSet(viewsets.ModelViewSet):
     ordering = ("-updated_at",)
 
     def get_queryset(self):
-        return Job.objects.filter(owner=self.request.user).order_by("-updated_at")
+        return Job.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)

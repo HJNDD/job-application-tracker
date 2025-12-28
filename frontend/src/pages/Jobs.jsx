@@ -13,6 +13,7 @@ const STATUS_LABEL = {
   rejected: "Reject",
 };
 
+
 /* ========= 小组件：状态徽章 ========= */
 function StatusBadge({ status }) {
   const color =
@@ -49,7 +50,6 @@ function EditJobModal({ job, onClose, onSaved, onUnauthorized }) {
   });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-
   async function onSubmit(e) {
     e.preventDefault();
     setMsg("");
@@ -164,7 +164,8 @@ export default function Jobs() {
   const [items, setItems] = useState([]);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const [search, setSearch] = useState("");
+  const [ordering, setOrdering] = useState("-updated_at");
   // ✅ Create 表单（创建时允许选 status：初始状态）
   const [createForm, setCreateForm] = useState({
     company: "",
@@ -187,13 +188,18 @@ export default function Jobs() {
     setMsg("");
     setLoading(true);
     try {
-      const res = await apiFetch("/api/jobs/");
+      const params = new URLSearchParams();
+      if (search.trim()) params.set("search", search.trim());
+      if (ordering) params.set("ordering", ordering);
+
+      const url = params.toString() ? `/api/jobs/?${params.toString()}` : "/api/jobs/";
+      const res = await apiFetch(url);
+
       if (!res.ok) {
         setMsg(`加载失败（HTTP ${res.status}）：${JSON.stringify(res.data)}`);
         return;
       }
 
-      // 兼容 DRF 是否分页
       const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
       setItems(data);
     } catch (e) {
@@ -203,6 +209,7 @@ export default function Jobs() {
       setLoading(false);
     }
   }
+
 
   /* ========= Create ========= */
   async function handleCreate(e) {
@@ -284,149 +291,189 @@ export default function Jobs() {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    const t = setTimeout(() => {
+      load();
+    }, 150); // 很短，几乎实时
+
+    return () => clearTimeout(t);
+  }, [search, ordering]);
+
+
 
   return (
-    <div style={styles.page}>
-      {/* ===== Header ===== */}
-      <div style={styles.header}>
-        <div>
-          <h2 style={{ margin: 0 }}>Jobs</h2>
-          <div style={{ color: "#666", fontSize: 13, marginTop: 4 }}>
-            Track your applications with status transitions.
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={load}>Refresh</button>
-          <button onClick={handleLogout}>Logout</button>
-        </div>
-      </div>
-
-      {msg && <div style={styles.msg}>{msg}</div>}
-      {loading && <p style={{ opacity: 0.7 }}>Loading...</p>}
-
-      {/* ===== Create ===== */}
-      <div style={styles.createCard}>
-        <h3 style={{ marginTop: 0, marginBottom: 12 }}>Create Job</h3>
-
-        <form onSubmit={handleCreate} style={styles.formGrid}>
-          <div style={styles.field}>
-            <label style={styles.label}>Company</label>
-            <input
-              value={createForm.company}
-              onChange={(e) =>
-                setCreateForm((s) => ({ ...s, company: e.target.value }))
-              }
-              placeholder="e.g. Atlassian"
-              style={styles.input}
-            />
-          </div>
-
-          <div style={styles.field}>
-            <label style={styles.label}>Title</label>
-            <input
-              value={createForm.title}
-              onChange={(e) => setCreateForm((s) => ({ ...s, title: e.target.value }))}
-              placeholder="e.g. Backend Engineer"
-              style={styles.input}
-            />
-          </div>
-
-          <div style={styles.field}>
-            <label style={styles.label}>Status</label>
-            <select
-              value={createForm.status}
-              onChange={(e) => setCreateForm((s) => ({ ...s, status: e.target.value }))}
-              style={styles.input}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
-            <label style={styles.label}>Note</label>
-            <textarea
-              value={createForm.note}
-              onChange={(e) => setCreateForm((s) => ({ ...s, note: e.target.value }))}
-              placeholder="Optional notes..."
-              rows={3}
-              style={styles.textarea}
-            />
-          </div>
-
-          <div style={{ gridColumn: "1 / -1" }}>
-            <button disabled={creating} style={styles.primaryBtn}>
-              {creating ? "Creating..." : "Create"}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* ===== List ===== */}
-      <div style={{ marginTop: 18 }}>
-        <h3 style={{ marginBottom: 10 }}>Your Jobs</h3>
-
-        <div style={styles.list}>
-          {items.map((j) => (
-            <div key={j.id} style={styles.card}>
-              <div style={styles.cardHeader}>
-                <div>
-                  <div style={styles.company}>{j.company}</div>
-                  <div style={styles.title}>{j.title}</div>
-                </div>
-                <StatusBadge status={j.status} />
-              </div>
-
-              {j.note ? (
-                <div style={styles.note}>{j.note}</div>
-              ) : (
-                <div style={{ ...styles.note, opacity: 0.5 }}>No note</div>
-              )}
-
-              <div style={styles.actions}>
-                <button onClick={() => setEditing(j)} style={styles.editBtn}>
-                  Edit
-                </button>
-
-                {/* ✅ 只显示后端允许的流转按钮 */}
-                {(j.can_transition_to || []).map((to) => (
-                  <button key={to} onClick={() => handleTransition(j.id, to)}>
-                    {STATUS_LABEL[to] || to}
-                  </button>
-                ))}
-
-                <button onClick={() => handleDelete(j.id)} style={styles.dangerBtn}>
-                  Delete
-                </button>
-              </div>
+      <div style={styles.page}>
+        {/* ===== Header ===== */}
+        <div style={styles.header}>
+          <div>
+            <h2 style={{margin: 0}}>Jobs</h2>
+            <div style={{color: "#666", fontSize: 13, marginTop: 4}}>
+              Track your applications with status transitions.
             </div>
-          ))}
+          </div>
+
+          <div style={{display: "flex", gap: 8}}>
+            <button onClick={load}>Refresh</button>
+            <button onClick={handleLogout}>Logout</button>
+          </div>
         </div>
 
-        {!items.length && !msg && !loading && (
-          <p style={{ marginTop: 16, opacity: 0.7 }}>暂无数据，先创建一条 Job 吧。</p>
+        {msg && <div style={styles.msg}>{msg}</div>}
+        {loading && <p style={{opacity: 0.7}}>Loading...</p>}
+        <div style={styles.toolbar}>
+          <input
+              placeholder="Search company/title/note..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{...styles.input, flex: 1}}
+          />
+
+          <select
+              value={ordering}
+              onChange={(e) => setOrdering(e.target.value)}
+              style={styles.input}
+          >
+            <option value="-updated_at">Newest updated</option>
+            <option value="updated_at">Oldest updated</option>
+            <option value="-created_at">Newest created</option>
+            <option value="created_at">Oldest created</option>
+            <option value="status">Status (A–Z)</option>
+            <option value="-status">Status (Z–A)</option>
+            <option value="applied_at">Applied date</option>
+            <option value="-applied_at">Applied date (desc)</option>
+          </select>
+
+          <button onClick={load}>Apply</button>
+
+          <button
+              onClick={() => {
+                setSearch("");
+                setOrdering("-updated_at");
+              }}
+          >
+            Reset
+          </button>
+        </div>
+
+        {/* ===== Create ===== */}
+        <div style={styles.createCard}>
+          <h3 style={{marginTop: 0, marginBottom: 12}}>Create Job</h3>
+
+          <form onSubmit={handleCreate} style={styles.formGrid}>
+            <div style={styles.field}>
+              <label style={styles.label}>Company</label>
+              <input
+                  value={createForm.company}
+                  onChange={(e) =>
+                      setCreateForm((s) => ({...s, company: e.target.value}))
+                  }
+                  placeholder="e.g. Atlassian"
+                  style={styles.input}
+              />
+            </div>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Title</label>
+              <input
+                  value={createForm.title}
+                  onChange={(e) => setCreateForm((s) => ({...s, title: e.target.value}))}
+                  placeholder="e.g. Backend Engineer"
+                  style={styles.input}
+              />
+            </div>
+
+            <div style={styles.field}>
+              <label style={styles.label}>Status</label>
+              <select
+                  value={createForm.status}
+                  onChange={(e) => setCreateForm((s) => ({...s, status: e.target.value}))}
+                  style={styles.input}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{...styles.field, gridColumn: "1 / -1"}}>
+              <label style={styles.label}>Note</label>
+              <textarea
+                  value={createForm.note}
+                  onChange={(e) => setCreateForm((s) => ({...s, note: e.target.value}))}
+                  placeholder="Optional notes..."
+                  rows={3}
+                  style={styles.textarea}
+              />
+            </div>
+
+            <div style={{gridColumn: "1 / -1"}}>
+              <button disabled={creating} style={styles.primaryBtn}>
+                {creating ? "Creating..." : "Create"}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* ===== List ===== */}
+        <div style={{marginTop: 18}}>
+          <h3 style={{marginBottom: 10}}>Your Jobs</h3>
+
+          <div style={styles.list}>
+            {items.map((j) => (
+                <div key={j.id} style={styles.card}>
+                  <div style={styles.cardHeader}>
+                    <div>
+                      <div style={styles.company}>{j.company}</div>
+                      <div style={styles.title}>{j.title}</div>
+                    </div>
+                    <StatusBadge status={j.status}/>
+                  </div>
+
+                  {j.note ? (
+                      <div style={styles.note}>{j.note}</div>
+                  ) : (
+                      <div style={{...styles.note, opacity: 0.5}}>No note</div>
+                  )}
+
+                  <div style={styles.actions}>
+                    <button onClick={() => setEditing(j)} style={styles.editBtn}>
+                      Edit
+                    </button>
+
+                    {/* ✅ 只显示后端允许的流转按钮 */}
+                    {(j.can_transition_to || []).map((to) => (
+                        <button key={to} onClick={() => handleTransition(j.id, to)}>
+                          {STATUS_LABEL[to] || to}
+                        </button>
+                    ))}
+
+                    <button onClick={() => handleDelete(j.id)} style={styles.dangerBtn}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+            ))}
+          </div>
+
+          {!items.length && !msg && !loading && (
+              <p style={{marginTop: 16, opacity: 0.7}}>暂无数据，先创建一条 Job 吧。</p>
+          )}
+        </div>
+
+        {/* ===== Edit Modal ===== */}
+        {editing && (
+            <EditJobModal
+                job={editing}
+                onClose={() => setEditing(null)}
+                onUnauthorized={handleLogout}
+                onSaved={(updated) => {
+                  setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+                  setEditing(null);
+                }}
+            />
         )}
       </div>
-
-      {/* ===== Edit Modal ===== */}
-      {editing && (
-        <EditJobModal
-          job={editing}
-          onClose={() => setEditing(null)}
-          onUnauthorized={handleLogout}
-          onSaved={(updated) => {
-            setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-            setEditing(null);
-          }}
-        />
-      )}
-    </div>
   );
 }
 
@@ -436,6 +483,13 @@ const styles = {
     padding: 24,
     maxWidth: 960,
     margin: "0 auto",
+  },
+  toolbar: {
+    display: "flex",
+    gap: 10,
+    marginBottom: 14,
+    alignItems: "center",
+    flexWrap: "wrap",
   },
   header: {
     display: "flex",
@@ -466,8 +520,8 @@ const styles = {
     gridTemplateColumns: "1fr 1fr 180px",
     gap: 12,
   },
-  field: { display: "flex", flexDirection: "column", gap: 6 },
-  label: { fontSize: 12, color: "#666" },
+  field: {display: "flex", flexDirection: "column", gap: 6},
+  label: {fontSize: 12, color: "#666" },
   input: {
     padding: "10px 12px",
     borderRadius: 10,
