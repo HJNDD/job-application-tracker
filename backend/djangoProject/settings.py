@@ -163,3 +163,5 @@ SPECTACULAR_SETTINGS = {
     # 让 Swagger UI 支持 Bearer Token 按钮（JWT）
     "COMPONENT_SPLIT_REQUEST": True,
 }
+
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "web"]

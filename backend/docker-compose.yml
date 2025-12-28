@@ -38,5 +38,16 @@ services:
       DEBUG: "1"
     command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 
+  frontend:
+    build:
+      context: ../frontend
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - web
+
 volumes:
   mysql_data:
