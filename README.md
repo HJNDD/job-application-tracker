@@ -3,6 +3,8 @@
 A full-stack job application tracking system built with **Django REST Framework** and **React (Vite)**.  
 This project demonstrates real-world backend–frontend integration, authentication, backend-enforced business rules, and a fully Dockerized development workflow.
 
+![CI](https://github.com/HJNDD/job-application-tracker/actions/workflows/ci.yml/badge.svg)
+
 ---
 
 ## ✨ Features
@@ -231,4 +233,4 @@ docker compose down -v
 
 ## 📄 License
 
-This project is for learning
+This project is for learning only
