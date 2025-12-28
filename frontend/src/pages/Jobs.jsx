@@ -5,6 +5,14 @@ import { useNavigate } from "react-router-dom";
 /* ========= 你的后端 status choices 是什么，这里就写什么 ========= */
 const STATUS_OPTIONS = ["applied", "interview", "offer", "rejected", "withdrawn"];
 
+/* ✅ 用于按钮/展示的人类可读文案（更像产品） */
+const STATUS_LABEL = {
+  applied: "Applied",
+  interview: "Interview",
+  offer: "Offer",
+  rejected: "Reject",
+};
+
 /* ========= 小组件：状态徽章 ========= */
 function StatusBadge({ status }) {
   const color =
@@ -32,12 +40,11 @@ function StatusBadge({ status }) {
   );
 }
 
-/* ========= Edit 弹层 ========= */
+/* ========= Edit 弹层（✅ 不允许改 status：status 必须走 transition） ========= */
 function EditJobModal({ job, onClose, onSaved, onUnauthorized }) {
   const [form, setForm] = useState({
     company: job.company || "",
     title: job.title || "",
-    status: job.status || STATUS_OPTIONS[0],
     note: job.note || "",
   });
   const [saving, setSaving] = useState(false);
@@ -54,9 +61,16 @@ function EditJobModal({ job, onClose, onSaved, onUnauthorized }) {
 
     setSaving(true);
     try {
+      // ✅ 不提交 status，状态只能通过 transition 改
+      const payload = {
+        company: form.company,
+        title: form.title,
+        note: form.note,
+      };
+
       const res = await apiFetch(`/api/jobs/${job.id}/`, {
         method: "PATCH",
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -107,21 +121,6 @@ function EditJobModal({ job, onClose, onSaved, onUnauthorized }) {
             />
           </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
-              style={styles.input}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div style={{ ...styles.field, gridColumn: "1 / -1" }}>
             <label style={styles.label}>Note</label>
             <textarea
@@ -142,7 +141,6 @@ function EditJobModal({ job, onClose, onSaved, onUnauthorized }) {
                 setForm({
                   company: job.company || "",
                   title: job.title || "",
-                  status: job.status || STATUS_OPTIONS[0],
                   note: job.note || "",
                 })
               }
@@ -153,7 +151,7 @@ function EditJobModal({ job, onClose, onSaved, onUnauthorized }) {
         </form>
 
         <div style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
-          小提示：这里用的是 <b>PATCH /api/jobs/{job.id}/</b>，只更新你提交的字段。
+          小提示：Edit 只改内容，<b>Status 必须走 transition</b>。
         </div>
       </div>
     </div>
@@ -167,7 +165,7 @@ export default function Jobs() {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Create 表单
+  // ✅ Create 表单（创建时允许选 status：初始状态）
   const [createForm, setCreateForm] = useState({
     company: "",
     title: "",
@@ -177,7 +175,7 @@ export default function Jobs() {
   const [creating, setCreating] = useState(false);
 
   // ✅ Edit
-  const [editing, setEditing] = useState(null); // 当前编辑的 job 或 null
+  const [editing, setEditing] = useState(null);
 
   function handleLogout() {
     clearToken();
@@ -211,7 +209,6 @@ export default function Jobs() {
     e.preventDefault();
     setMsg("");
 
-    // 最简单的前端校验
     if (!createForm.company.trim() || !createForm.title.trim()) {
       setMsg("Company 和 Title 不能为空");
       return;
@@ -229,10 +226,8 @@ export default function Jobs() {
         return;
       }
 
-      // 方式1：直接把新 job 插入列表（更快）
       setItems((prev) => [res.data, ...prev]);
 
-      // 清空表单
       setCreateForm({
         company: "",
         title: "",
@@ -267,7 +262,7 @@ export default function Jobs() {
     }
   }
 
-  /* ========= 状态流转 ========= */
+  /* ========= 状态流转（✅ 只通过这个改状态） ========= */
   async function handleTransition(id, toStatus) {
     setMsg("");
     try {
@@ -281,7 +276,6 @@ export default function Jobs() {
         return;
       }
 
-      // 用后端返回的最新 job 覆盖
       setItems((prev) => prev.map((j) => (j.id === id ? res.data : j)));
     } catch (e) {
       if (String(e.message) === "UNAUTHORIZED") return handleLogout();
@@ -334,9 +328,7 @@ export default function Jobs() {
             <label style={styles.label}>Title</label>
             <input
               value={createForm.title}
-              onChange={(e) =>
-                setCreateForm((s) => ({ ...s, title: e.target.value }))
-              }
+              onChange={(e) => setCreateForm((s) => ({ ...s, title: e.target.value }))}
               placeholder="e.g. Backend Engineer"
               style={styles.input}
             />
@@ -346,9 +338,7 @@ export default function Jobs() {
             <label style={styles.label}>Status</label>
             <select
               value={createForm.status}
-              onChange={(e) =>
-                setCreateForm((s) => ({ ...s, status: e.target.value }))
-              }
+              onChange={(e) => setCreateForm((s) => ({ ...s, status: e.target.value }))}
               style={styles.input}
             >
               {STATUS_OPTIONS.map((s) => (
@@ -363,9 +353,7 @@ export default function Jobs() {
             <label style={styles.label}>Note</label>
             <textarea
               value={createForm.note}
-              onChange={(e) =>
-                setCreateForm((s) => ({ ...s, note: e.target.value }))
-              }
+              onChange={(e) => setCreateForm((s) => ({ ...s, note: e.target.value }))}
               placeholder="Optional notes..."
               rows={3}
               style={styles.textarea}
@@ -406,18 +394,12 @@ export default function Jobs() {
                   Edit
                 </button>
 
-                <button onClick={() => handleTransition(j.id, "applied")}>
-                  Applied
-                </button>
-                <button onClick={() => handleTransition(j.id, "interview")}>
-                  Interview
-                </button>
-                <button onClick={() => handleTransition(j.id, "offer")}>
-                  Offer
-                </button>
-                <button onClick={() => handleTransition(j.id, "rejected")}>
-                  Reject
-                </button>
+                {/* ✅ 只显示后端允许的流转按钮 */}
+                {(j.can_transition_to || []).map((to) => (
+                  <button key={to} onClick={() => handleTransition(j.id, to)}>
+                    {STATUS_LABEL[to] || to}
+                  </button>
+                ))}
 
                 <button onClick={() => handleDelete(j.id)} style={styles.dangerBtn}>
                   Delete
@@ -428,9 +410,7 @@ export default function Jobs() {
         </div>
 
         {!items.length && !msg && !loading && (
-          <p style={{ marginTop: 16, opacity: 0.7 }}>
-            暂无数据，先创建一条 Job 吧。
-          </p>
+          <p style={{ marginTop: 16, opacity: 0.7 }}>暂无数据，先创建一条 Job 吧。</p>
         )}
       </div>
 
